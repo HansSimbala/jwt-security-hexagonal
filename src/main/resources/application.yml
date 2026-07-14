@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: jwt-security-hexagonal
+    name: jwt-spring-security
   datasource:
     url: jdbc:h2:mem:securitydb
     driver-class-name: org.h2.Driver
@@ -22,11 +22,79 @@ spring:
 application:
   security:
     jwt:
-      secret-key: bWkgY2xhdmUgc2VjcmV0YSBwYXJhIGp3dCBkZWJlIHNlciBtdXkgbGFyZ2E=
-      expiration: 3600000
+      secret-key: bWkgY2xhdmUgZXMgbXV5IHNlZ3VyYSAxMjM0NTY3ODkgQUJDYWJj
+      expiration: 86400000
       refresh-token:
         expiration: 604800000
 
 logging:
   level:
     com.example.security: DEBUG
+
+tracing:
+  enabled: true
+
+otel:
+  service:
+    name: jwt-spring-security
+  exporter:
+    otlp:
+      endpoint: http://localhost:4318
+      protocol: http/protobuf
+  traces:
+    sampler:
+      probability: 1.0
+  metrics:
+    exporter: none
+  logs:
+    exporter: none
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+      base-path: /actuator
+    enabled-by-default: true
+  endpoint:
+    health:
+      show-details: always
+      enabled: true
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+    info:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    enable:
+      jvm: true
+      process: true
+      system: true
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+    baggage:
+      enabled: true
+      correlation:
+        enabled: true
+      remote-fields:
+        - X-Trace-Id
+        - X-User-Id
+        - X-Request-Id
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
+
+rate-limit:
+  enabled: true
+  login:
+    max-requests: 20
+    window-minutes: 1
+  register:
+    max-requests: 5
+    window-minutes: 60

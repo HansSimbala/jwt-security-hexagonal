@@ -9,11 +9,13 @@ import com.example.security.domain.port.input.LogoutUserPort;
 import com.example.security.domain.port.input.RefreshTokenPort;
 import com.example.security.domain.port.input.RegisterUserPort;
 import com.example.security.domain.port.output.TokenGeneratorPort;
+import com.example.security.infrastructure.metrics.MetricsService;
 import com.example.security.infrastructure.adapter.input.rest.dto.LoginRequestDto;
 import com.example.security.infrastructure.adapter.input.rest.dto.LogoutResponseDto;
 import com.example.security.infrastructure.adapter.input.rest.dto.RegisterRequestDto;
 import com.example.security.infrastructure.adapter.input.rest.dto.TokenResponseDto;
 import com.example.security.infrastructure.adapter.input.rest.mapper.AuthMapper;
+import io.micrometer.core.instrument.Timer;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,26 +31,36 @@ public class AuthController {
     private final RefreshTokenPort refreshTokenPort;
     private final LogoutUserPort logoutUserPort;
     private final TokenGeneratorPort tokenGenerator;
+    private final MetricsService metricsService;
 
     public AuthController(
             RegisterUserPort registerUserPort,
             LoginUserPort loginUserPort,
             RefreshTokenPort refreshTokenPort,
             LogoutUserPort logoutUserPort,
-            TokenGeneratorPort tokenGenerator) {
+            TokenGeneratorPort tokenGenerator,
+            MetricsService metricsService) {
         this.registerUserPort = registerUserPort;
         this.loginUserPort = loginUserPort;
         this.refreshTokenPort = refreshTokenPort;
         this.logoutUserPort = logoutUserPort;
         this.tokenGenerator = tokenGenerator;
+        this.metricsService = metricsService;
     }
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponseDto> login(@Valid @RequestBody LoginRequestDto request) {
-        LoginCommand command = AuthMapper.toCommand(request);
-        TokenResult result = loginUserPort.login(command);
-        TokenResponseDto response = AuthMapper.toResponseDto(result);
-        return ResponseEntity.ok(response);
+        Timer.Sample sample = metricsService.startTimer();
+        try {
+            LoginCommand command = AuthMapper.toCommand(request);
+            TokenResult result = loginUserPort.login(command);
+            metricsService.incrementLoginSuccess();
+            TokenResponseDto response = AuthMapper.toResponseDto(result);
+            return metricsService.recordLoginDuration(sample, ResponseEntity.ok(response));
+        } catch (RuntimeException ex) {
+            metricsService.incrementLoginFailure();
+            throw ex;
+        }
     }
 
     @PostMapping("/refresh")
@@ -65,6 +77,7 @@ public class AuthController {
         }
 
         TokenResult result = refreshTokenPort.refresh(refreshToken);
+        metricsService.incrementRefreshTokenUsed();
         TokenResponseDto response = AuthMapper.toResponseDto(result);
         return ResponseEntity.ok(response);
     }
@@ -83,14 +96,22 @@ public class AuthController {
         }
 
         logoutUserPort.logout(accessToken);
+        metricsService.incrementJwtRevoked();
         return ResponseEntity.ok(new LogoutResponseDto("Logout successful", Instant.now().toString()));
     }
 
     @PostMapping("/register")
     public ResponseEntity<TokenResponseDto> register(@Valid @RequestBody RegisterRequestDto request) {
-        RegisterCommand command = AuthMapper.toCommand(request);
-        TokenResult result = registerUserPort.register(command);
-        TokenResponseDto response = AuthMapper.toResponseDto(result);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        Timer.Sample sample = metricsService.startTimer();
+        try {
+            RegisterCommand command = AuthMapper.toCommand(request);
+            TokenResult result = registerUserPort.register(command);
+            metricsService.incrementRegistrationSuccess();
+            TokenResponseDto response = AuthMapper.toResponseDto(result);
+            return metricsService.recordRegistrationDuration(sample, ResponseEntity.status(HttpStatus.CREATED).body(response));
+        } catch (RuntimeException ex) {
+            metricsService.incrementRegistrationFailure();
+            throw ex;
+        }
     }
 }

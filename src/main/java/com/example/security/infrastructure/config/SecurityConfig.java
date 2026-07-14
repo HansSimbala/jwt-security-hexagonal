@@ -2,6 +2,7 @@ package com.example.security.infrastructure.config;
 
 import com.example.security.infrastructure.adapter.input.filter.JwtAuthenticationEntryPoint;
 import com.example.security.infrastructure.adapter.input.filter.JwtAuthenticationFilter;
+import com.example.security.infrastructure.metrics.MetricsService;
 import com.example.security.domain.port.output.TokenGeneratorPort;
 import com.example.security.domain.port.output.TokenRepositoryPort;
 import org.springframework.context.annotation.Bean;
@@ -21,20 +22,25 @@ public class SecurityConfig {
 
     private final TokenGeneratorPort tokenGenerator;
     private final TokenRepositoryPort tokenRepository;
+    private final MetricsService metricsService;
 
-    public SecurityConfig(TokenGeneratorPort tokenGenerator, TokenRepositoryPort tokenRepository) {
+    public SecurityConfig(
+            TokenGeneratorPort tokenGenerator,
+            TokenRepositoryPort tokenRepository,
+            MetricsService metricsService) {
         this.tokenGenerator = tokenGenerator;
         this.tokenRepository = tokenRepository;
+        this.metricsService = metricsService;
     }
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
-        return new JwtAuthenticationFilter(tokenGenerator, tokenRepository);
+        return new JwtAuthenticationFilter(tokenGenerator, tokenRepository, metricsService);
     }
 
     @Bean
     public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
-        return new JwtAuthenticationEntryPoint();
+        return new JwtAuthenticationEntryPoint(metricsService);
     }
 
     @Bean

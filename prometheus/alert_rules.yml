@@ -1,0 +1,97 @@
+groups:
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: infrastructure
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: HighCPUUsage
+        expr: process_cpu_usage > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is above 80%"
+
+      - alert: HighMemoryUsage
+        expr: jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          category: infrastructure
+        annotations:
+          summary: "High JVM heap memory usage"
+          description: "JVM heap memory usage is above 85%"
+
+  - name: security_alerts
+    interval: 30s
+    rules:
+      - alert: HighLoginFailureRate
+        expr: rate(auth_login_failure_total[1m]) * 60 > 5
+        for: 1m
+        labels:
+          severity: critical
+          category: security
+        annotations:
+          summary: "High rate of login failures detected"
+          description: "More than 5 login failures per minute. Possible brute force attack."
+
+      - alert: HighInvalidTokenRate
+        expr: rate(jwt_token_invalid_total[1m]) * 60 > 10
+        for: 1m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High rate of invalid JWT tokens"
+          description: "More than 10 invalid tokens per minute."
+
+      - alert: UnauthorizedAccessAttempts
+        expr: rate(security_access_unauthorized_total[1m]) * 60 > 10
+        for: 1m
+        labels:
+          severity: warning
+          category: security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "More than 10 unauthorized (401) attempts per minute."
+
+  - name: application_alerts
+    interval: 30s
+    rules:
+      - alert: HighHTTPErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count[5m]))
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          category: application
+        annotations:
+          summary: "High HTTP 5xx error rate"
+          description: "More than 5% of requests are failing with 5xx errors."
+
+      - alert: HighRequestLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (le)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          category: performance
+        annotations:
+          summary: "High request latency"
+          description: "95th percentile latency is above 1 second."

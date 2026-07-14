@@ -11,6 +11,7 @@ import com.example.security.domain.port.input.RegisterUserPort;
 import com.example.security.domain.port.output.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import java.time.Clock;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,7 +19,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @Configuration
 public class BeanConfig {
     @Bean
+    @Primary
     public Clock clock() { return Clock.systemUTC(); }
+
+    @Bean("rateLimitClock")
+    public Clock rateLimitClock() { return Clock.systemUTC(); }
 
     @Bean
     public PasswordEncoder passwordEncoder() { return new BCryptPasswordEncoder(); }

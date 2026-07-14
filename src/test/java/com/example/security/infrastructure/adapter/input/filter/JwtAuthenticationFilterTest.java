@@ -7,6 +7,7 @@ import com.example.security.domain.model.Token;
 import com.example.security.domain.model.User;
 import com.example.security.domain.port.output.TokenGeneratorPort;
 import com.example.security.domain.port.output.TokenRepositoryPort;
+import com.example.security.infrastructure.metrics.MetricsService;
 import jakarta.servlet.ServletException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,8 +32,9 @@ class JwtAuthenticationFilterTest {
 
     private final TokenGeneratorPort tokenGenerator = mock(TokenGeneratorPort.class);
     private final TokenRepositoryPort tokenRepository = mock(TokenRepositoryPort.class);
+    private final MetricsService metricsService = mock(MetricsService.class);
     private final JwtAuthenticationFilter filter =
-            new JwtAuthenticationFilter(tokenGenerator, tokenRepository);
+            new JwtAuthenticationFilter(tokenGenerator, tokenRepository, metricsService);
 
     @AfterEach
     void clearContext() {

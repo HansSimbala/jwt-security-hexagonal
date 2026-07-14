@@ -2,6 +2,8 @@ package com.example.security.infrastructure.adapter.output.security;
 
 import com.example.security.domain.model.User;
 import com.example.security.domain.port.output.TokenGeneratorPort;
+import com.example.security.infrastructure.metrics.MetricsService;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
@@ -19,9 +21,11 @@ import java.util.stream.Collectors;
 @Component
 public class JwtTokenAdapter implements TokenGeneratorPort {
     private final Clock clock;
+    private final MetricsService metricsService;
 
-    public JwtTokenAdapter(Clock clock) {
+    public JwtTokenAdapter(Clock clock, MetricsService metricsService) {
         this.clock = clock;
+        this.metricsService = metricsService;
     }
 
     @Value("${application.security.jwt.secret-key}")
@@ -32,10 +36,18 @@ public class JwtTokenAdapter implements TokenGeneratorPort {
     private long refreshTokenExpiration;
 
     @Override
-    public String generateAccessToken(User user) { return buildToken(user, accessTokenExpiration); }
+    public String generateAccessToken(User user) {
+        String token = buildToken(user, accessTokenExpiration);
+        metricsService.incrementJwtGenerated();
+        return token;
+    }
 
     @Override
-    public String generateRefreshToken(User user) { return buildToken(user, refreshTokenExpiration); }
+    public String generateRefreshToken(User user) {
+        String token = buildToken(user, refreshTokenExpiration);
+        metricsService.incrementRefreshTokenGenerated();
+        return token;
+    }
 
     @Override
     public long getAccessTokenExpirationSeconds() { return accessTokenExpiration / 1000; }
@@ -59,11 +71,19 @@ public class JwtTokenAdapter implements TokenGeneratorPort {
 
     @Override
     public boolean isTokenValid(String token) {
+        long startedAt = System.currentTimeMillis();
         try {
             parseClaims(token);
+            metricsService.incrementJwtValidated();
             return true;
-        } catch (JwtException | IllegalArgumentException e) {
+        } catch (ExpiredJwtException e) {
+            metricsService.incrementJwtExpired();
             return false;
+        } catch (JwtException | IllegalArgumentException e) {
+            metricsService.incrementJwtInvalid();
+            return false;
+        } finally {
+            metricsService.recordJwtValidationDuration(System.currentTimeMillis() - startedAt);
         }
     }
 

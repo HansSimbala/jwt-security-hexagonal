@@ -1,0 +1,4 @@
+email,attempts,expectedBlocked
+user1@test.com,4,false
+user2@test.com,5,true
+user3@test.com,10,true

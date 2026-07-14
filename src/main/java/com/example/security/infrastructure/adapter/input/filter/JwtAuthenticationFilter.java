@@ -2,6 +2,7 @@ package com.example.security.infrastructure.adapter.input.filter;
 
 import com.example.security.domain.port.output.TokenGeneratorPort;
 import com.example.security.domain.port.output.TokenRepositoryPort;
+import com.example.security.infrastructure.metrics.MetricsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,10 +21,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final TokenGeneratorPort tokenGenerator;
     private final TokenRepositoryPort tokenRepository;
+    private final MetricsService metricsService;
 
-    public JwtAuthenticationFilter(TokenGeneratorPort tokenGenerator, TokenRepositoryPort tokenRepository) {
+    public JwtAuthenticationFilter(
+            TokenGeneratorPort tokenGenerator,
+            TokenRepositoryPort tokenRepository,
+            MetricsService metricsService) {
         this.tokenGenerator = tokenGenerator;
         this.tokenRepository = tokenRepository;
+        this.metricsService = metricsService;
     }
 
     @Override
@@ -89,6 +95,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void sendUnauthorizedError(HttpServletResponse response, String message) throws IOException {
+        metricsService.incrementUnauthorizedAccess();
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write("{\"error\": \"" + message + "\"}");
