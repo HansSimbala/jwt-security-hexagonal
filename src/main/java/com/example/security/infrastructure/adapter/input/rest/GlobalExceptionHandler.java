@@ -1,9 +1,11 @@
 package com.example.security.infrastructure.adapter.input.rest;
 
+import com.example.security.domain.exception.AccountLockedException;
 import com.example.security.domain.exception.InvalidRoleException;
 import com.example.security.domain.exception.InvalidCredentialsException;
 import com.example.security.domain.exception.InvalidTokenException;
 import com.example.security.domain.exception.UserAlreadyExistsException;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -37,6 +39,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleInvalidToken(InvalidTokenException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(Map.of("error", ex.getMessage()));
+    }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccountLocked(
+            AccountLockedException ex,
+            HttpServletRequest request) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", java.time.Instant.now().toString());
+        response.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        response.put("error", "Too Many Requests");
+        response.put("message", ex.getMessage());
+        response.put("path", request.getRequestURI());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

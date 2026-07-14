@@ -19,6 +19,7 @@ public class TokenRepositoryAdapter implements TokenRepositoryPort {
     @Override
     public Token save(Token token) {
         TokenJpaEntity entity = new TokenJpaEntity();
+        entity.setId(token.getId());
         entity.setToken(token.getValue());
         entity.setTokenType(token.getType().name());
         entity.setTokenCategory(token.getCategory().name());
@@ -44,8 +45,22 @@ public class TokenRepositoryAdapter implements TokenRepositoryPort {
 
     @Override
     @Transactional
-    public void revokeAllUserTokens(Long userId) {
+    public void revoke(Token token) {
+        token.revoke();
+        token.markAsExpired();
+        save(token);
+    }
+
+    @Override
+    @Transactional
+    public void revokeAllByUserId(Long userId) {
         jpaRepository.revokeAllByUserId(userId);
+    }
+
+    @Override
+    @Transactional
+    public void revokeAllUserTokens(Long userId) {
+        revokeAllByUserId(userId);
     }
 
     private Token toDomain(TokenJpaEntity entity) {

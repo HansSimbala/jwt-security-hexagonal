@@ -8,5 +8,7 @@ public interface TokenRepositoryPort {
     Token save(Token token);
     List<Token> findAllValidTokensByUserId(Long userId);
     Optional<Token> findByValue(String tokenValue);
+    void revoke(Token token);
+    void revokeAllByUserId(Long userId);
     void revokeAllUserTokens(Long userId);
 }

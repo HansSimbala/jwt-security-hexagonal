@@ -1,8 +1,10 @@
 package com.example.security.infrastructure.config;
 
+import com.example.security.application.usecase.LogoutUserUseCase;
 import com.example.security.application.usecase.RefreshTokenUseCase;
 import com.example.security.application.usecase.LoginUserUseCase;
 import com.example.security.domain.port.input.LoginUserPort;
+import com.example.security.domain.port.input.LogoutUserPort;
 import com.example.security.domain.port.input.RefreshTokenPort;
 import com.example.security.application.usecase.RegisterUserUseCase;
 import com.example.security.domain.port.input.RegisterUserPort;
@@ -26,8 +28,19 @@ public class BeanConfig {
             UserRepositoryPort userRepository,
             TokenRepositoryPort tokenRepository,
             TokenGeneratorPort tokenGenerator,
-            PasswordEncoderPort passwordEncoder) {
-        return new LoginUserUseCase(userRepository, tokenRepository, tokenGenerator, passwordEncoder);
+            PasswordEncoderPort passwordEncoder,
+            LoginAttemptPort loginAttemptPort) {
+        return new LoginUserUseCase(
+                userRepository,
+                tokenRepository,
+                tokenGenerator,
+                passwordEncoder,
+                loginAttemptPort);
+    }
+
+    @Bean
+    public LogoutUserPort logoutUserPort(TokenRepositoryPort tokenRepository) {
+        return new LogoutUserUseCase(tokenRepository);
     }
 
     @Bean
