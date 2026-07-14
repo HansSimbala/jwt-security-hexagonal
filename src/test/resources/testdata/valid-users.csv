@@ -1,0 +1,4 @@
+name,email,password,role
+Juan Pérez,juan@example.com,password123,CUSTOMER
+María García,maria@example.com,securePass1,TELLER
+Admin User,admin@example.com,adminPass1,ADMIN

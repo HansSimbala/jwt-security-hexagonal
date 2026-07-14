@@ -1,0 +1,4 @@
+email,expectedError
+invalid.email,Invalid email format
+@example.com,Invalid email format
+user@,Invalid email format
